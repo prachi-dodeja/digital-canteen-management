@@ -1,0 +1,458 @@
+{% extends "base_customer.html" %}
+
+{% block title %}Menu{% endblock %}
+
+{% block styles %}
+<style>
+    .food-card {
+        transition: all 0.3s ease;
+        height: 100%;
+    }
+    
+    .food-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 40px rgba(0,0,0,0.2) !important;
+    }
+    
+    .food-card img {
+        height: 200px;
+        object-fit: cover;
+        width: 100%;
+    }
+    
+    .card-body {
+        padding: 15px;
+    }
+    
+    .card-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 10px;
+    }
+    
+    .card-text {
+        color: #666;
+        font-size: 0.9rem;
+    }
+    
+    .card-footer {
+        background: #f8f9fa;
+        padding: 15px;
+    }
+    
+    .price-tag {
+        font-size: 1.3rem;
+        font-weight: bold;
+        color: #06d6a0;
+    }
+    
+    .controls .btn {
+        font-weight: 600;
+        padding: 8px 20px;
+    }
+    
+    .quantity-selector {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .quantity-selector button {
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        font-weight: bold;
+    }
+    
+    .quantity-selector span {
+        min-width: 40px;
+        text-align: center;
+        font-weight: bold;
+        font-size: 1.1rem;
+    }
+    
+    .cart-card {
+        position: sticky;
+        top: 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 20px;
+        padding: 25px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    
+    .cart-card h2 {
+        color: white;
+        margin-bottom: 20px;
+    }
+    
+    .cart-card .form-label {
+        color: white;
+        font-weight: 500;
+    }
+    
+    .cart-card .form-control {
+        border-radius: 10px;
+        border: none;
+        padding: 12px;
+    }
+    
+    .cart-items {
+        max-height: 300px;
+        overflow-y: auto;
+        margin: 20px 0;
+    }
+    
+    .cart-items .list-group-item {
+        background: rgba(255,255,255,0.1);
+        border: 1px solid rgba(255,255,255,0.2);
+        color: white;
+        border-radius: 10px;
+        margin-bottom: 10px;
+    }
+    
+    .total-price {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #ffd166;
+    }
+    
+    .discount-badge {
+        background: #06d6a0;
+        color: white;
+        padding: 10px 15px;
+        border-radius: 10px;
+        font-weight: 600;
+        margin: 10px 0;
+    }
+    
+    #searchInput {
+        border-radius: 50px;
+        padding: 15px 25px;
+        border: 2px solid #667eea;
+        font-size: 1.1rem;
+    }
+    
+    #searchInput:focus {
+        border-color: #764ba2;
+        box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+    }
+    
+    .status-badge {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        padding: 10px 20px;
+        border-radius: 50px;
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+    
+    .status-open {
+        background: #06d6a0;
+        color: white;
+    }
+    
+    .status-closed {
+        background: #ef476f;
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Canteen Status Badge -->
+{% if canteen_status == 'OPEN' %}
+<div class="status-badge status-open">
+    <i class="fas fa-circle-check"></i> Canteen Open
+</div>
+{% else %}
+<div class="status-badge status-closed">
+    <i class="fas fa-circle-xmark"></i> Canteen Closed
+</div>
+{% endif %}
+
+<h1 class="text-center mb-4">
+    <i class="fas fa-pizza-slice"></i> Today's Menu
+</h1>
+
+<!-- Search Bar -->
+<div class="row justify-content-center mb-5">
+    <div class="col-lg-8">
+        <div class="input-group">
+            <span class="input-group-text bg-white border-end-0" style="border-radius: 50px 0 0 50px; border-right: none;">
+                <i class="fas fa-search"></i>
+            </span>
+            <input type="text" id="searchInput" class="form-control border-start-0" 
+                   placeholder="Search for your favorite food..." style="border-left: none; padding-left: 0;">
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Menu Items Column -->
+    <div class="col-lg-8">
+        <div id="menu-items-grid" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            {% for item in menu_items %}
+            <div class="col menu-item-col">
+                <div class="card food-card shadow">
+                    <img src="{{ url_for('static', filename='images/' + item.image_url) }}" 
+                         class="card-img-top" 
+                         alt="{{ item.name }}"
+                         onerror="this.src='https://via.placeholder.com/400x200?text={{ item.name }}'">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ item.name }}</h5>
+                        <p class="card-text">{{ item.description }}</p>
+                    </div>
+                    <div class="card-footer d-flex justify-content-between align-items-center">
+                        <span class="price-tag">₹{{ "%.2f"|format(item.price) }}</span>
+                        <div class="controls">
+                            <button id="add-btn-{{ item._id }}" 
+                                    class="btn btn-primary btn-sm"
+                                    onclick="changeQuantity('{{ item._id }}', 1, '{{ item.name }}', {{ item.price }})">
+                                <i class="fas fa-plus"></i> Add
+                            </button>
+                            <div id="quantity-selector-{{ item._id }}" 
+                                 class="quantity-selector d-none">
+                                <button class="btn btn-secondary btn-sm" 
+                                        onclick="changeQuantity('{{ item._id }}', -1)">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                                <span id="quantity-{{ item._id }}">0</span>
+                                <button class="btn btn-secondary btn-sm" 
+                                        onclick="changeQuantity('{{ item._id }}', 1, '{{ item.name }}', {{ item.price }})">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div id="no-results-message" class="alert alert-warning mt-4 d-none">
+            <i class="fas fa-search"></i> No food items match your search.
+        </div>
+    </div>
+
+    <!-- Cart Column -->
+    <div class="col-lg-4">
+        <div class="cart-card">
+            <h2><i class="fas fa-shopping-cart"></i> Your Order</h2>
+            
+            <form id="orderForm">
+                <div class="mb-3">
+                    <label for="customerName" class="form-label">
+                        <i class="fas fa-user"></i> Your Name
+                    </label>
+                    <input type="text" 
+                           class="form-control" 
+                           id="customerName" 
+                           placeholder="Enter your name" 
+                           required>
+                </div>
+                
+                <ul id="cartItems" class="list-group cart-items"></ul>
+                
+                <div class="mb-3">
+                    <label for="couponCode" class="form-label">
+                        <i class="fas fa-tag"></i> Have a Coupon?
+                    </label>
+                    <div class="input-group">
+                        <input type="text" 
+                               id="couponCode" 
+                               class="form-control" 
+                               placeholder="Enter coupon code">
+                        <button class="btn btn-light" type="button" id="applyCouponBtn">
+                            Apply
+                        </button>
+                    </div>
+                    <small class="text-white-50">Try: SOHAM or XBREF for 50% off!</small>
+                </div>
+                
+                <div id="discount-info" class="discount-badge d-none"></div>
+                
+                <div class="text-center my-4">
+                    <h4 class="text-white">Total Amount</h4>
+                    <div class="total-price">₹<span id="totalPrice">0.00</span></div>
+                </div>
+                
+                <button type="submit" class="btn btn-success w-100 btn-lg">
+                    <i class="fas fa-check-circle"></i> Place Order
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let cart = [];
+let isDiscountApplied = false;
+
+function changeQuantity(itemId, change, name = '', price = 0) {
+    let itemInCart = cart.find(item => item.id === itemId);
+    
+    if (itemInCart) {
+        itemInCart.quantity += change;
+        if (itemInCart.quantity <= 0) {
+            cart = cart.filter(item => item.id !== itemId);
+        }
+    } else if (change > 0) {
+        cart.push({ id: itemId, name: name, price: price, quantity: 1 });
+    }
+    
+    if (cart.length === 0) {
+        isDiscountApplied = false;
+    }
+    
+    updateUI();
+}
+
+function updateUI() {
+    const cartItemsEl = document.getElementById('cartItems');
+    const totalPriceEl = document.getElementById('totalPrice');
+    const discountInfoEl = document.getElementById('discount-info');
+    let subtotal = 0;
+
+    cartItemsEl.innerHTML = '';
+    
+    if (cart.length === 0) {
+        cartItemsEl.innerHTML = '<li class="list-group-item text-center">Your cart is empty</li>';
+    } else {
+        cart.forEach(item => {
+            subtotal += item.price * item.quantity;
+            const li = document.createElement('li');
+            li.className = 'list-group-item d-flex justify-content-between align-items-center';
+            li.innerHTML = `
+                <span>${item.name} <strong>x${item.quantity}</strong></span>
+                <span>₹${(item.price * item.quantity).toFixed(2)}</span>
+            `;
+            cartItemsEl.appendChild(li);
+        });
+    }
+
+    // Calculate discount
+    if (isDiscountApplied && subtotal > 0) {
+        const discountAmount = subtotal * 0.5;
+        const finalTotal = subtotal - discountAmount;
+        totalPriceEl.textContent = finalTotal.toFixed(2);
+        discountInfoEl.classList.remove('d-none');
+        discountInfoEl.innerHTML = `
+            <div class="text-center">
+                <i class="fas fa-gift"></i> 50% Discount Applied!<br>
+                <small>You saved ₹${discountAmount.toFixed(2)}</small>
+            </div>
+        `;
+    } else {
+        totalPriceEl.textContent = subtotal.toFixed(2);
+        discountInfoEl.classList.add('d-none');
+    }
+
+    // Update quantity displays
+    document.querySelectorAll('[id^="add-btn-"]').forEach(addBtn => {
+        const itemId = addBtn.id.split('-')[2];
+        const quantitySelector = document.getElementById(`quantity-selector-${itemId}`);
+        const quantitySpan = document.getElementById(`quantity-${itemId}`);
+        const itemInCart = cart.find(item => item.id === itemId);
+
+        if (itemInCart) {
+            addBtn.classList.add('d-none');
+            quantitySelector.classList.remove('d-none');
+            quantitySpan.textContent = itemInCart.quantity;
+        } else {
+            addBtn.classList.remove('d-none');
+            quantitySelector.classList.add('d-none');
+        }
+    });
+}
+
+// Order submission
+document.getElementById('orderForm').addEventListener('submit', async function(event) {
+    event.preventDefault();
+    
+    const customerName = document.getElementById('customerName').value.trim();
+    
+    if (!customerName) {
+        alert('⚠️ Please enter your name!');
+        return;
+    }
+    
+    if (cart.length === 0) {
+        alert('🛒 Your cart is empty! Please add some items.');
+        return;
+    }
+
+    const orderData = {
+        customer_name: customerName,
+        cart: cart,
+        total_price: parseFloat(document.getElementById('totalPrice').textContent)
+    };
+
+    try {
+        const response = await fetch('/place_order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(orderData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            sessionStorage.setItem('lastOrderId', result.order_id);
+            window.location.href = `/order_success/${result.order_id}`;
+        } else {
+            alert('❌ Error: ' + result.message);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('❌ Network error. Please try again.');
+    }
+});
+
+// Search functionality
+document.getElementById('searchInput').addEventListener('keyup', function() {
+    const searchTerm = this.value.toLowerCase();
+    const menuItems = document.querySelectorAll('.menu-item-col');
+    const noResultsMessage = document.getElementById('no-results-message');
+    let itemsFound = 0;
+
+    menuItems.forEach(item => {
+        const itemName = item.querySelector('.card-title').textContent.toLowerCase();
+        const itemDesc = item.querySelector('.card-text').textContent.toLowerCase();
+        const isMatch = itemName.includes(searchTerm) || itemDesc.includes(searchTerm);
+        
+        item.style.display = isMatch ? '' : 'none';
+        if (isMatch) itemsFound++;
+    });
+
+    noResultsMessage.classList.toggle('d-none', itemsFound > 0);
+});
+
+// Coupon application
+document.getElementById('applyCouponBtn').addEventListener('click', function() {
+    const code = document.getElementById('couponCode').value.trim().toUpperCase();
+    
+    if (cart.length === 0) {
+        alert("🛒 Please add items to your cart first!");
+        return;
+    }
+
+    if (code === 'SOHAM' || code === 'XBREF') {
+        isDiscountApplied = true;
+        alert("🎉 Awesome! You got 50% off!");
+    } else {
+        isDiscountApplied = false;
+        alert("❌ Invalid coupon code. Try SOHAM or XBREF!");
+    }
+    
+    updateUI();
+});
+
+// Initialize
+updateUI();
+</script>
+{% endblock %}
